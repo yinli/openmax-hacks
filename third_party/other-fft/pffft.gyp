@@ -6,13 +6,23 @@
       'include_dirs': [
         'pffft',
       ],
-      'cflags!': [
-        '-mfpu=vfpv3-d16',
-      ],
-      'cflags': [
-        # We enable Neon instructions even with arm_neon==0, to support
-        # runtime detection.
-        '-mfpu=neon',
+      'conditions' : [
+        ['target_arch=="arm"', {
+          'cflags!': [
+            '-mfpu=vfpv3-d16',
+          ],
+          'cflags': [
+            # We enable Neon instructions even with arm_neon==0, to support
+            # runtime detection.
+            '-mfpu=neon',
+          ],
+        }],
+
+        ['target_arch=="ia32" or target_arch=="x64"', {
+          'cflags': [
+            '-msse2',
+          ],
+        }],
       ],
       'sources' : [
         'pffft/fftpack.c',

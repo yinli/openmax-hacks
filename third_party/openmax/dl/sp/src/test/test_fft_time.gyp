@@ -35,6 +35,11 @@
           'BIG_FFT_TABLE',
         ],
       }],
+      ['test_for_ia == 1', {
+        'defines': [
+          'TEST_FOR_IA',
+        ],
+      }],
       ['kissfft == 1', {
         'defines': [
           'HAVE_KISSFFT',

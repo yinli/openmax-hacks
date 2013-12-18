@@ -19,11 +19,25 @@
 #include "dl/sp/src/test/gensig.h"
 #include "dl/sp/src/test/test_util.h"
 
+#if defined(HAVE_KISSFFT)
 #include "fft_time_kissfft.h"
+#endif
+
+#if defined(HAVE_NE10)
 #include "fft_time_ne10.h"
+#endif
+
+#if defined(HAVE_FFMPEG)
 #include "fft_time_ffmpeg.h"
+#endif
+
+#if defined(HAVE_CKFFT)
 #include "fft_time_ckfft.h"
+#endif
+
+#if defined(HAVE_PFFFT)
 #include "fft_time_pffft.h"
+#endif
 
 #define MAX_FFT_ORDER TWIDDLE_TABLE_ORDER
 #define MAX_FFT_ORDER_FIXED_POINT 12
@@ -33,12 +47,10 @@ typedef enum {
   S32,
 } s16_s32;
 
+#if !defined(TEST_FOR_IA)
 void TimeOneFloatFFT(int count, int fft_log_size, float signal_value,
                      int signal_type);
 void TimeFloatFFT(int count, float signal_value, int signal_type);
-void TimeOneFloatRFFT(int count, int fft_log_size, float signal_value,
-                      int signal_type);
-void TimeFloatRFFT(int count, float signal_value, int signal_type);
 void TimeOneSC32FFT(int count, int fft_log_size, float signal_value,
                     int signal_type);
 void TimeSC32FFT(int count, float signal_value, int signal_type);
@@ -54,6 +66,10 @@ void TimeSC16FFT(int count, float signal_value, int signal_type);
 void TimeOneRFFT32(int count, int fft_log_size, float signal_value,
                    int signal_type);
 void TimeRFFT32(int count, float signal_value, int signal_type);
+#endif
+void TimeOneFloatRFFT(int count, int fft_log_size, float signal_value,
+                      int signal_type);
+void TimeFloatRFFT(int count, float signal_value, int signal_type);
 
 int verbose = 1;
 int include_conversion = 0;
@@ -221,12 +237,14 @@ void main(int argc, char* argv[]) {
   }
 
   if (test_mode) {
+#if !defined(TEST_FOR_IA)
     TimeFloatFFT(count, signal_value, signal_type);
-    TimeFloatRFFT(count, signal_value, signal_type);
     TimeSC16FFT(count, signal_value, signal_type);
     TimeRFFT16(count, signal_value, signal_type);
     TimeSC32FFT(count, signal_value, signal_type);
     TimeRFFT32(count, signal_value, signal_type);
+#endif
+    TimeFloatRFFT(count, signal_value, signal_type);
 #if defined(HAVE_KISSFFT)
     TimeKissFFT(count, signal_value, signal_type);
 #endif
@@ -253,12 +271,15 @@ void main(int argc, char* argv[]) {
     }
 
     switch (fft_type) {
+#if !defined(TEST_FOR_IA)
       case 0:
         TimeFloatFFT(count, signal_value, signal_type);
         break;
+#endif
       case 1:
         TimeFloatRFFT(count, signal_value, signal_type);
         break;
+#if !defined(TEST_FOR_IA)
       case 2:
         TimeSC16FFT(count, signal_value, signal_type);
         break;
@@ -271,6 +292,7 @@ void main(int argc, char* argv[]) {
       case 5:
         TimeRFFT32(count, signal_value, signal_type);
         break;
+#endif
 #if defined(HAVE_KISSFFT)
       case 6:
         TimeKissFFT(count, signal_value, signal_type);
@@ -351,7 +373,8 @@ int ComputeCount(int nominal_count, int fft_log_size) {
 
   return count;
 }
-
+
+#if !defined(TEST_FOR_IA)
 void TimeOneFloatFFT(int count, int fft_log_size, float signal_value,
                      int signal_type) {
   struct AlignedPtr* x_aligned;
@@ -436,6 +459,7 @@ void TimeFloatFFT(int count, float signal_value, int signal_type) {
     TimeOneFloatFFT(testCount, k, signal_value, signal_type);
   }
 }
+#endif
 
 void TimeOneFloatRFFT(int count, int fft_log_size, float signal_value,
                       int signal_type) {
@@ -559,6 +583,7 @@ void generateSC32Signal(OMX_SC32* x, OMX_SC32* fft, int size, int signal_type,
   free(true_fft);
 }
 
+#if !defined(TEST_FOR_IA)
 void TimeOneSC32FFT(int count, int fft_log_size, float signal_value,
                     int signal_type) {
   OMX_SC32* x;
@@ -1382,3 +1407,4 @@ void TimeRFFT32(int count, float signal_value, int signal_type) {
     TimeOneRFFT32(testCount, k, signal_value, signal_type);
   }
 }
+#endif
