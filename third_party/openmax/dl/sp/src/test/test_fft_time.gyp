@@ -10,6 +10,10 @@
   'variables' : {
     # Override this value to build with small float FFT tables
     'big_float_fft%' : 1,
+    # Please set it to 1 when you run the tests on x86 platform
+    'test_for_ia%' : 0,
+    # Include IPP FFTs, it is only valid on x86 platform. Default is no.
+    'ipp%' : 0,
     # Include KissFFT.  Default is no.
     'kissfft%' : 0,
     # Include NE10 FFTs.  Default is no.
