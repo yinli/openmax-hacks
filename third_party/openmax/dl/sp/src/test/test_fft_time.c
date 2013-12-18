@@ -39,6 +39,10 @@
 #include "fft_time_pffft.h"
 #endif
 
+#if defined(HAVE_IPP)
+#include "ipps.h"
+#endif
+
 #define MAX_FFT_ORDER TWIDDLE_TABLE_ORDER
 #define MAX_FFT_ORDER_FIXED_POINT 12
 
@@ -70,6 +74,12 @@ void TimeRFFT32(int count, float signal_value, int signal_type);
 void TimeOneFloatRFFT(int count, int fft_log_size, float signal_value,
                       int signal_type);
 void TimeFloatRFFT(int count, float signal_value, int signal_type);
+
+#if defined(HAVE_IPP)
+void TimeFloatRFFT32ByIPP(int count, float signal_value, int signal_type);
+void TimeOneFloatRFFT32ByIPP(int count, int fft_log_size, float signal_value,
+                             int signal_type);
+#endif
 
 int verbose = 1;
 int include_conversion = 0;
@@ -126,6 +136,9 @@ void TimeFFTUsage(char* prog) {
 #if defined(HAVE_PFFFT)
       "	             13 - PFFFT complex float\n"
       "	             14 - PFFFT real float\n"
+#endif
+#if defined(HAVE_IPP)
+      "              15 - IPP real float\n"
 #endif
       "  -n logsize  Log2 of FFT size\n"
       "  -s scale    Scale factor for forward FFT (default = 0)\n"
@@ -264,6 +277,9 @@ void main(int argc, char* argv[]) {
     TimePfFFT(count, signal_value, signal_type);
     TimePfRFFT(count, signal_value, signal_type);
 #endif
+#if defined(HAVE_IPP)
+    TimeFloatRFFT32ByIPP(count, signal_value, signal_type);
+#endif
   } else {
     if (!full_test_mode) {
       min_fft_order = fft_log_size;
@@ -330,6 +346,11 @@ void main(int argc, char* argv[]) {
         break;
       case 14:
         TimePfRFFT(count, signal_value, signal_type);
+        break;
+#endif
+#if defined(HAVE_IPP)
+        case 15:
+        TimeFloatRFFT32ByIPP(count, signal_value, signal_type);
         break;
 #endif
       default:
@@ -1406,5 +1427,94 @@ void TimeRFFT32(int count, float signal_value, int signal_type) {
     int testCount = ComputeCount(count, k);
     TimeOneRFFT32(testCount, k, signal_value, signal_type);
   }
+}
+#endif
+
+#if defined(HAVE_IPP)
+void TimeFloatRFFT32ByIPP(int count, float signal_value, int signal_type) {
+   int k;
+   int max_order = (max_fft_order > MAX_FFT_ORDER_FIXED_POINT)
+      ? MAX_FFT_ORDER_FIXED_POINT : max_fft_order;
+
+  if (verbose == 0)
+    printf("RFFT32ByIPP\n");
+
+  for (k = min_fft_order; k <= max_order; ++k) {
+    int testCount = ComputeCount(count, k);
+    TimeOneFloatRFFT32ByIPP(testCount, k, signal_value, signal_type);
+  } 
+}
+
+void TimeOneFloatRFFT32ByIPP(int count, int fft_log_size, float signal_value,
+                             int signal_type) {
+  float* x;                   /* Source */
+  float* y;                   /* Transform */
+  float* z;                   /* Inverse transform */
+
+  OMX_F32* y_true;              /* True FFT */
+
+  struct AlignedPtr* x_aligned;
+  struct AlignedPtr* y_aligned;
+  struct AlignedPtr* z_aligned;
+
+
+  int n, ipp_buffer_size = 0;
+  Ipp8u* m_buffer;
+  IppsDFTSpec_R_32f* m_DFTSpec;
+
+  int fft_size;
+  struct timeval start_time;
+  struct timeval end_time;
+  double elapsed_time;
+
+  fft_size = 1 << fft_log_size;
+
+  x_aligned = AllocAlignedPointer(32, sizeof(*x) * fft_size);
+  /* The transformed value is in CCS format and is has fft_size + 2 values */
+  y_aligned = AllocAlignedPointer(32, sizeof(*y) * (fft_size + 2));
+  z_aligned = AllocAlignedPointer(32, sizeof(*z) * fft_size);
+
+  x = (float*)x_aligned->aligned_pointer_;
+  y = (float*)y_aligned->aligned_pointer_;
+  z = (float*)z_aligned->aligned_pointer_;
+
+  y_true = (OMX_F32*) malloc(sizeof(*y_true) * (fft_size + 2));
+
+  GenerateRealFloatSignal((OMX_F32*)x, (struct ComplexFloat*) y_true, fft_size, signal_type,
+                          signal_value);
+
+  ippsDFTInitAlloc_R_32f(&m_DFTSpec, fft_size, IPP_FFT_NODIV_BY_ANY, ippAlgHintFast);
+
+  ippsDFTGetBufSize_R_32f(m_DFTSpec, &ipp_buffer_size);
+
+  m_buffer = ippsMalloc_8u(ipp_buffer_size);
+  
+  if (do_forward_test) {
+    GetUserTime(&start_time);
+    for (n = 0; n < count; ++n) {
+        ippsDFTFwd_RToPerm_32f((Ipp32f*)(x), y, m_DFTSpec, m_buffer);
+    }
+    GetUserTime(&end_time);
+
+    elapsed_time = TimeDifference(&start_time, &end_time);
+
+    PrintResult("Forward Float RFFT By IPP", fft_log_size, elapsed_time, count);
+  }
+
+  if (do_inverse_test) {
+    GetUserTime(&start_time);
+    for (n = 0; n < count; ++n) {
+         ippsDFTInv_PermToR_32f(y, (Ipp32f*)(z), m_DFTSpec, m_buffer);
+    }
+    GetUserTime(&end_time);
+
+    elapsed_time = TimeDifference(&start_time, &end_time);
+
+    PrintResult("Inverse Float RFFT By IPP", fft_log_size, elapsed_time, count);
+  }
+
+  FreeAlignedPointer(x_aligned);
+  FreeAlignedPointer(y_aligned);
+  FreeAlignedPointer(z_aligned);
 }
 #endif

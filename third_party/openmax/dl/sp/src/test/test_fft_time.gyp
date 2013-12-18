@@ -40,6 +40,21 @@
           'TEST_FOR_IA',
         ],
       }],
+      ['ipp == 1', {
+        'defines': [
+          'HAVE_IPP',
+        ],
+        'cflags': [
+          '-I/opt/intel/ipp5.2/include',
+        ],
+        'link_settings': {
+          'libraries': [
+            '-L/opt/intel/ipp5.2/lib -lippcore_l -lipps_l',
+            '/opt/intel/ipp5.2/lib/libippcore_l.a',
+            '/opt/intel/ipp5.2/lib/libipps_l.a',
+          ],
+        },
+      }],
       ['kissfft == 1', {
         'defines': [
           'HAVE_KISSFFT',
